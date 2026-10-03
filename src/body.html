@@ -1,0 +1,35 @@
+<div class="wrap top">
+  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#15201e"/><path d="M16 22l12 10-12 10" fill="none" stroke="#43cbc2" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="32" y="39" width="17" height="6" rx="3" fill="#94cf6f"/></svg>
+  <div class="brand">
+    <h1>Ściąga Linux</h1>
+    <p>CachyOS i Linux Mint: komendy, ustawienia, pierwsze kroki. Działa offline.</p>
+  </div>
+  <button class="install" id="installBtn" hidden>Zainstaluj aplikację</button>
+</div>
+
+<div class="bar">
+  <div class="wrap bar-in">
+    <div class="row1">
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Szukaj: aktualizacja, wifi, sterowniki…" autocomplete="off" aria-label="Szukaj komendy">
+        <kbd class="kbd-hint">/</kbd>
+      </label>
+      <div class="seg" role="group" aria-label="System">
+        <button data-d="all" aria-pressed="true">Wszystko</button>
+        <button data-d="cachy" aria-pressed="false">CachyOS</button>
+        <button data-d="mint" aria-pressed="false">Mint</button>
+        <button data-d="fav" aria-pressed="false">★ Ulubione</button>
+      </div>
+    </div>
+    <nav class="chips" id="chips" aria-label="Sekcje"></nav>
+  </div>
+</div>
+
+<main class="wrap" id="main"></main>
+
+<footer class="wrap">
+  Kliknij komendę, żeby ją skopiować. Gwiazdka dodaje do ulubionych, kółko przy krokach oznacza je jako zrobione. Wszystko zapisuje się tylko na tym urządzeniu.
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>

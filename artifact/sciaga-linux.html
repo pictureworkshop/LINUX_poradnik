@@ -1,0 +1,751 @@
+<title>Ściąga Linux</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+/* Układ: przyklejony pasek narzędzi (szukaj + system), pod nim jedna kolumna sekcji; wiersz komendy = kod po lewej, opis po prawej. */
+:root {
+  --bg: #eef2f1;
+  --surface: #ffffff;
+  --ink: #15201e;
+  --muted: #56655f;
+  --line: #d6dfdb;
+  --code-bg: #e6ecea;
+  --accent: #1d4f7a;
+  --cachy: #0a7f7a;
+  --cachy-soft: #d7efed;
+  --mint: #4a8a2a;
+  --mint-soft: #e2f0d8;
+  --warn: #9a5a00;
+  --warn-soft: #fbeed6;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", "DejaVu Sans Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101615; --surface: #172020; --ink: #e4ebe8; --muted: #93a39d; --line: #283432;
+    --code-bg: #0b100f; --accent: #86b7e6; --cachy: #43cbc2; --cachy-soft: #133331;
+    --mint: #94cf6f; --mint-soft: #1d2e16; --warn: #f0b561; --warn-soft: #33260f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101615; --surface: #172020; --ink: #e4ebe8; --muted: #93a39d; --line: #283432;
+  --code-bg: #0b100f; --accent: #86b7e6; --cachy: #43cbc2; --cachy-soft: #133331;
+  --mint: #94cf6f; --mint-soft: #1d2e16; --warn: #f0b561; --warn-soft: #33260f;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.55 var(--f-body);
+}
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wrap { max-width: 980px; margin: 0 auto; padding-inline: 16px; }
+
+/* Nagłówek */
+.top { padding-block: 28px 8px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.logo { width: 44px; height: 44px; flex: none; border-radius: 11px; }
+.brand { flex: 1 1 220px; min-width: 0; }
+.brand h1 { margin: 0; font: 700 1.75rem/1.1 var(--f-display); letter-spacing: -0.02em; text-wrap: balance; }
+.brand p { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+.install {
+  border: 1px solid var(--accent); background: transparent; color: var(--accent);
+  border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 700;
+}
+.install:hover { background: var(--accent); color: var(--surface); }
+
+/* Pasek narzędzi */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.bar-in { padding-block: 10px; display: flex; flex-direction: column; gap: 10px; }
+.row1 { display: flex; gap: 10px; flex-wrap: wrap; }
+.search { position: relative; flex: 1 1 260px; min-width: 0; }
+.search input {
+  width: 100%; padding: 10px 40px 10px 38px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface);
+}
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.search kbd {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font: 0.75rem var(--f-mono); color: var(--muted); border: 1px solid var(--line);
+  border-radius: 4px; padding: 0 5px;
+}
+.seg { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.seg button {
+  border: 0; background: transparent; padding: 6px 12px; border-radius: 7px; cursor: pointer;
+  color: var(--muted); font-weight: 700; font-size: 0.9rem; white-space: nowrap;
+}
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.seg button[data-d="cachy"][aria-pressed="true"] { background: var(--cachy); color: var(--surface); }
+.seg button[data-d="mint"][aria-pressed="true"] { background: var(--mint); color: var(--surface); }
+
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; padding-bottom: 2px; }
+.chips a {
+  flex: none; text-decoration: none; color: var(--ink); font-size: 0.85rem;
+  padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  display: inline-flex; gap: 6px; align-items: center;
+}
+.chips a:hover { border-color: var(--accent); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.cachy { background: var(--cachy); }
+.dot.mint { background: var(--mint); }
+
+/* Sekcje */
+main { padding-block: 18px 60px; display: flex; flex-direction: column; gap: 34px; }
+section { scroll-margin-top: 140px; }
+.sh { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.sh h2 { margin: 0; font: 700 1.35rem/1.2 var(--f-display); letter-spacing: -0.01em; text-wrap: balance; }
+.tag {
+  font: 700 0.7rem/1 var(--f-body); letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 4px 7px; border-radius: 5px; background: var(--code-bg); color: var(--muted);
+}
+.tag.cachy { background: var(--cachy-soft); color: var(--cachy); }
+.tag.mint { background: var(--mint-soft); color: var(--mint); }
+.intro { margin: 0 0 12px; color: var(--muted); max-width: 68ch; }
+
+.list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.item { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) auto; gap: 8px 16px; padding: 12px 14px; border-top: 1px solid var(--line); align-items: start; }
+.item:first-child { border-top: 0; }
+.steps .item { grid-template-columns: auto minmax(0, 1.15fr) minmax(0, 1fr) auto; }
+.num {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); background: transparent;
+  display: grid; place-items: center; cursor: pointer; font: 700 0.8rem var(--f-mono); color: var(--muted); padding: 0;
+}
+.item.done .num { background: var(--mint); border-color: var(--mint); color: var(--surface); }
+.item.done .cmd, .item.done .desc { opacity: 0.55; }
+
+.cmd { min-width: 0; }
+.cmd code {
+  display: block; font: 0.86rem/1.5 var(--f-mono); background: var(--code-bg);
+  padding: 7px 10px; border-radius: 7px; overflow-x: auto; white-space: pre; cursor: copy;
+}
+.cmd code::before { content: "$ "; color: var(--muted); user-select: none; }
+.gui { font-size: 0.8rem; color: var(--muted); margin-top: 6px; display: flex; gap: 6px; align-items: center; }
+.gui.solo { margin-top: 0; }
+.gui b { font-weight: 700; color: var(--ink); background: var(--code-bg); padding: 2px 7px; border-radius: 5px; font: 700 0.8rem var(--f-mono); }
+.desc { min-width: 0; font-size: 0.95rem; }
+.desc p { margin: 0; }
+.warn { margin-top: 6px !important; font-size: 0.85rem; background: var(--warn-soft); color: var(--warn); padding: 5px 9px; border-radius: 6px; }
+.acts { display: flex; gap: 4px; }
+.ic {
+  width: 32px; height: 32px; border-radius: 7px; border: 1px solid transparent; background: transparent;
+  display: grid; place-items: center; cursor: pointer; color: var(--muted); padding: 0;
+}
+.ic:hover { border-color: var(--line); color: var(--ink); }
+.ic.on { color: var(--warn); }
+.ic.ok { color: var(--mint); }
+
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 0.92rem; }
+th, td { text-align: left; padding: 9px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+thead th { border-top: 0; font: 700 0.75rem var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+thead th:nth-child(2) { color: var(--cachy); }
+thead th:nth-child(3) { color: var(--mint); }
+td:first-child { font-weight: 700; }
+td.mono { font: 0.84rem/1.5 var(--f-mono); }
+
+.empty { text-align: center; color: var(--muted); padding: 40px 0; }
+.empty b { color: var(--ink); }
+footer { color: var(--muted); font-size: 0.85rem; padding-block: 0 40px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px);
+  background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 8px; font-weight: 700;
+  opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 10;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 700px) {
+  .item { grid-template-columns: minmax(0, 1fr) auto; }
+  .item .desc { grid-column: 1 / 2; }
+  .item .acts { grid-row: 1; grid-column: 2; }
+  .steps .item { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .steps .item .desc { grid-column: 2 / 3; }
+  .steps .item .acts { grid-column: 3; }
+  .kbd-hint { display: none; }
+  .search input { padding-right: 12px; }
+  .brand h1 { font-size: 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } html { scroll-behavior: auto; } }
+html { scroll-behavior: smooth; }
+
+</style>
+<div class="wrap top">
+  <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#15201e"/><path d="M16 22l12 10-12 10" fill="none" stroke="#43cbc2" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><rect x="32" y="39" width="17" height="6" rx="3" fill="#94cf6f"/></svg>
+  <div class="brand">
+    <h1>Ściąga Linux</h1>
+    <p>CachyOS i Linux Mint: komendy, ustawienia, pierwsze kroki. Działa offline.</p>
+  </div>
+  <button class="install" id="installBtn" hidden>Zainstaluj aplikację</button>
+</div>
+
+<div class="bar">
+  <div class="wrap bar-in">
+    <div class="row1">
+      <label class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Szukaj: aktualizacja, wifi, sterowniki…" autocomplete="off" aria-label="Szukaj komendy">
+        <kbd class="kbd-hint">/</kbd>
+      </label>
+      <div class="seg" role="group" aria-label="System">
+        <button data-d="all" aria-pressed="true">Wszystko</button>
+        <button data-d="cachy" aria-pressed="false">CachyOS</button>
+        <button data-d="mint" aria-pressed="false">Mint</button>
+        <button data-d="fav" aria-pressed="false">★ Ulubione</button>
+      </div>
+    </div>
+    <nav class="chips" id="chips" aria-label="Sekcje"></nav>
+  </div>
+</div>
+
+<main class="wrap" id="main"></main>
+
+<footer class="wrap">
+  Kliknij komendę, żeby ją skopiować. Gwiazdka dodaje do ulubionych, kółko przy krokach oznacza je jako zrobione. Wszystko zapisuje się tylko na tym urządzeniu.
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>window.__ARTIFACT = true;</script>
+<script>
+// Treść ściągi. d: 'cachy' | 'mint' | 'all'. kind: 'steps' (kolejne kroki), 'cmds' (lista komend), 'table'.
+// Pozycja: c = komenda (może być pusta), x = opis, w = ostrzeżenie, g = gdzie w GUI.
+const SECTIONS = [
+  // ───────────── CachyOS ─────────────
+  {
+    id: 'cachy-start', d: 'cachy', kind: 'steps', t: 'Pierwsze kroki po instalacji',
+    intro: 'CachyOS to Arch Linux z kernelem i pakietami zoptymalizowanymi pod nowe procesory. Domyślna powłoka to fish, a pakiety instalujesz przez pacman i paru. Przejdź te kroki po kolei.',
+    items: [
+      { c: 'sudo pacman -Syu', x: 'Pełna aktualizacja systemu. Rób ją przed instalacją czegokolwiek nowego.', w: 'Nigdy nie rób samego „pacman -Sy” bez „u”. Częściowe aktualizacje psują Archa.' },
+      { c: 'sudo cachyos-rate-mirrors', x: 'Testuje serwery lustrzane i ustawia najszybsze dla repozytoriów Arch i CachyOS.' },
+      { c: 'cachyos-hello', x: 'Ekran powitalny: instalacja aplikacji, poprawki systemu, pakiety do gier, linki do wiki.', g: 'Menu → CachyOS Hello' },
+      { c: 'sudo chwd -a', x: 'CachyOS Hardware Detection. Wykrywa kartę graficzną i instaluje właściwe sterowniki (NVIDIA, AMD, Intel).' },
+      { c: 'sudo ufw status', x: 'Sprawdź, czy firewall działa. Jeśli jest „inactive”, włącz go: sudo ufw enable.' },
+      { c: 'sudo pacman -S cachyos-gaming-meta cachyos-gaming-applications', x: 'Tylko jeśli grasz: Steam, Lutris, Heroic, Wine, Proton i biblioteki 32-bit.' },
+      { c: 'sudo pacman -S btrfs-assistant snapper', x: 'Na systemie plików Btrfs: migawki systemu, do których wrócisz, gdy aktualizacja coś zepsuje. Konfigurujesz je w Btrfs Assistant.', g: 'Menu → Btrfs Assistant' },
+      { c: 'cachyos-kernel-manager', x: 'Graficzny menedżer kerneli: instalacja wariantów (np. LTS jako zapas) i wybór schedulera sched-ext.', g: 'Menu → CachyOS Kernel Manager' },
+    ],
+  },
+  {
+    id: 'cachy-pacman', d: 'cachy', kind: 'cmds', t: 'pacman: pakiety z repozytoriów',
+    intro: 'pacman instaluje pakiety z oficjalnych repozytoriów Arch i CachyOS. Wielka litera po myślniku to operacja (S = sync, R = remove, Q = query).',
+    items: [
+      { c: 'sudo pacman -Syu', x: 'Aktualizacja całego systemu.' },
+      { c: 'sudo pacman -S nazwa-pakietu', x: 'Instalacja pakietu.' },
+      { c: 'sudo pacman -Rns nazwa-pakietu', x: 'Usunięcie pakietu razem z nieużywanymi zależnościami i plikami konfiguracyjnymi.' },
+      { c: 'pacman -Ss fraza', x: 'Szukanie w repozytoriach.' },
+      { c: 'pacman -Qs fraza', x: 'Szukanie wśród zainstalowanych.' },
+      { c: 'pacman -Si nazwa-pakietu', x: 'Informacje o pakiecie z repozytorium (wersja, rozmiar, zależności).' },
+      { c: 'pacman -Qe', x: 'Pakiety zainstalowane ręcznie (bez zależności).' },
+      { c: 'pacman -Qo /ścieżka/do/pliku', x: 'Który pakiet jest właścicielem pliku.' },
+      { c: 'pacman -Ql nazwa-pakietu', x: 'Lista plików zainstalowanych przez pakiet.' },
+      { c: 'sudo pacman -Rns $(pacman -Qdtq)', x: 'Usuwa osierocone zależności, których nic już nie potrzebuje.', w: 'Przeczytaj listę przed potwierdzeniem.' },
+      { c: 'sudo paccache -rk2', x: 'Czyści pamięć podręczną pakietów, zostawiając 2 ostatnie wersje (do ewentualnego cofnięcia).' },
+      { c: 'sudo pacman -U /ścieżka/pakiet.pkg.tar.zst', x: 'Instalacja pakietu z pliku, np. starszej wersji z /var/cache/pacman/pkg.' },
+    ],
+  },
+  {
+    id: 'cachy-aur', d: 'cachy', kind: 'cmds', t: 'AUR i paru',
+    intro: 'AUR to repozytorium przepisów tworzonych przez użytkowników. paru pobiera je, buduje i instaluje, a przy okazji obsługuje zwykłe repozytoria.',
+    items: [
+      { c: 'paru', x: 'Aktualizuje wszystko naraz: repozytoria i AUR.' },
+      { c: 'paru -S nazwa-pakietu', x: 'Instalacja z AUR (lub z repozytorium, jeśli tam jest).', w: 'Pakiety AUR nie są sprawdzane przez nikogo. Przejrzyj PKGBUILD, który paru pokazuje przed budowaniem.' },
+      { c: 'paru fraza', x: 'Interaktywne szukanie: wpisz numer z listy, żeby zainstalować.' },
+      { c: 'paru -Sua', x: 'Aktualizuje tylko pakiety z AUR.' },
+      { c: 'paru -Gp nazwa-pakietu', x: 'Wyświetla PKGBUILD bez instalowania.' },
+      { c: 'paru -c', x: 'Usuwa niepotrzebne zależności (także te z AUR).' },
+    ],
+  },
+  {
+    id: 'cachy-kernel', d: 'cachy', kind: 'cmds', t: 'Kernel i bootloader',
+    intro: 'CachyOS ma kilka wariantów kernela. Warto mieć drugi, np. LTS, jako zapas na wypadek problemów.',
+    items: [
+      { c: 'uname -r', x: 'Wersja aktualnie uruchomionego kernela.' },
+      { c: 'pacman -Q | grep linux-cachyos', x: 'Zainstalowane kernele CachyOS.' },
+      { c: 'sudo pacman -S linux-cachyos-lts linux-cachyos-lts-headers', x: 'Zapasowy kernel LTS. Wybierzesz go w menu startowym.' },
+      { c: 'sudo mkinitcpio -P', x: 'Przebudowuje initramfs dla wszystkich kerneli (np. po zmianie modułów).' },
+      { c: 'sudo grub-mkconfig -o /boot/grub/grub.cfg', x: 'Tylko przy GRUB: odświeża menu startowe po zmianach w /etc/default/grub.' },
+      { c: 'sudo sdboot-manage gen', x: 'Tylko przy systemd-boot: generuje wpisy dla zainstalowanych kerneli.' },
+      { c: 'cat /proc/cmdline', x: 'Parametry, z którymi wystartował kernel.' },
+    ],
+  },
+  {
+    id: 'cachy-fish', d: 'cachy', kind: 'cmds', t: 'Powłoka fish',
+    intro: 'fish podpowiada komendy na szaro podczas pisania (strzałka → akceptuje). Składnia skryptów różni się od basha, ale zwykłe komendy działają tak samo.',
+    items: [
+      { c: 'fish_config', x: 'Konfiguracja fish w przeglądarce: kolory, prompt, funkcje.' },
+      { c: "alias --save akt 'sudo pacman -Syu'", x: 'Tworzy trwały alias. Od teraz wpisujesz tylko „akt”.' },
+      { c: 'set -Ux EDITOR nano', x: 'Trwała zmienna środowiskowa (tu: domyślny edytor).' },
+      { c: 'nano ~/.config/fish/config.fish', x: 'Plik startowy fish, odpowiednik ~/.bashrc.' },
+      { c: '', x: 'Alt+S dopisuje „sudo” przed bieżącą lub poprzednią komendą. W fish nie ma „sudo !!” z basha.', g: 'Skrót klawiszowy' },
+      { c: 'bash', x: 'Tymczasowo uruchamia basha (np. do wklejonego skryptu). Wyjście: exit.' },
+      { c: 'chsh -s /usr/bin/bash', x: 'Zmienia domyślną powłokę na bash (po ponownym zalogowaniu). Powrót: chsh -s /usr/bin/fish.' },
+    ],
+  },
+  {
+    id: 'cachy-fix', d: 'cachy', kind: 'cmds', t: 'Konserwacja i naprawy',
+    intro: 'Najczęstsze problemy na Archu i ich rozwiązania.',
+    items: [
+      { c: 'sudo pacman -Sy archlinux-keyring cachyos-keyring && sudo pacman -Su', x: 'Błędy podpisów GPG („invalid or corrupted package”): najpierw odśwież klucze, potem resztę.' },
+      { c: 'sudo rm /var/lib/pacman/db.lck', x: 'Usuwa blokadę bazy po przerwanej aktualizacji.', w: 'Tylko gdy na pewno nie działa żaden pacman ani paru.' },
+      { c: 'sudo pacdiff', x: 'Scala pliki .pacnew, czyli nowe wersje konfiguracji, które pacman zostawił obok Twoich.' },
+      { c: 'systemctl --failed', x: 'Usługi, które nie wystartowały.' },
+      { c: 'journalctl -b -p 3', x: 'Błędy z bieżącego uruchomienia systemu.' },
+      { c: '', x: 'Przed dużą aktualizacją zajrzyj na archlinux.org/news. Czasem wymagane są ręczne kroki.', g: 'Nawyk' },
+      { c: '', x: 'System nie wstaje po aktualizacji? W menu startowym wybierz migawkę Snappera lub kernel LTS, potem przywróć stan w Btrfs Assistant.', g: 'Ratunek' },
+    ],
+  },
+
+  // ───────────── Linux Mint ─────────────
+  {
+    id: 'mint-start', d: 'mint', kind: 'steps', t: 'Pierwsze kroki po instalacji',
+    intro: 'Linux Mint bazuje na Ubuntu LTS. Jest stabilny i większość rzeczy zrobisz w nim myszką. Poniżej kolejność z ekranu powitalnego, z komendami dla terminala.',
+    items: [
+      { c: 'sudo apt update && sudo apt upgrade', x: 'Aktualizacja systemu. To samo robi Menedżer aktualizacji (ikonka tarczy w zasobniku).', g: 'Menu → Menedżer aktualizacji' },
+      { c: 'mintsources', x: 'Źródła oprogramowania: wybierz najszybsze lokalne serwery lustrzane dla głównego repozytorium i bazy.', g: 'Menu → Źródła oprogramowania' },
+      { c: 'timeshift-launcher', x: 'Ustaw Timeshift: tryb RSYNC, dzienne i tygodniowe migawki. To Twoja siatka bezpieczeństwa.', g: 'Menu → Timeshift' },
+      { c: 'driver-manager', x: 'Menedżer sterowników: zainstaluj zalecany sterownik NVIDIA lub mikrokod procesora.', g: 'Menu → Menedżer sterowników' },
+      { c: 'sudo apt install mint-meta-codecs', x: 'Kodeki multimedialne (MP3, H.264, czcionki Microsoft).' },
+      { c: 'sudo ufw enable', x: 'Włącza firewall. Graficznie: Konfiguracja zapory.', g: 'Menu → Konfiguracja zapory' },
+      { c: 'flatpak update', x: 'Aktualizacja aplikacji Flatpak. Mint ma Flathub włączony od razu w Menedżerze oprogramowania.' },
+      { c: 'cinnamon-settings', x: 'Ustawienia systemu: motywy, aplety, gorące narożniki, skróty klawiszowe.', g: 'Menu → Ustawienia systemu' },
+    ],
+  },
+  {
+    id: 'mint-apt', d: 'mint', kind: 'cmds', t: 'apt: pakiety z repozytoriów',
+    intro: 'apt to menedżer pakietów Debiana i Ubuntu. Najpierw zawsze „update”, żeby odświeżyć listę pakietów.',
+    items: [
+      { c: 'sudo apt update', x: 'Odświeża listę dostępnych pakietów. Niczego nie instaluje.' },
+      { c: 'sudo apt upgrade', x: 'Instaluje dostępne aktualizacje.' },
+      { c: 'sudo apt full-upgrade', x: 'Aktualizacja, która może też usuwać lub dodawać pakiety, gdy wymagają tego zależności.' },
+      { c: 'sudo apt install nazwa-pakietu', x: 'Instalacja pakietu.' },
+      { c: 'sudo apt install ./plik.deb', x: 'Instalacja pobranego pliku .deb razem z zależnościami. Ważne jest „./”.' },
+      { c: 'sudo apt remove nazwa-pakietu', x: 'Usunięcie pakietu (konfiguracja zostaje).' },
+      { c: 'sudo apt purge nazwa-pakietu', x: 'Usunięcie pakietu razem z jego konfiguracją systemową.' },
+      { c: 'sudo apt autoremove --purge', x: 'Usuwa niepotrzebne zależności i stare kernele.' },
+      { c: 'apt search fraza', x: 'Szukanie pakietów.' },
+      { c: 'apt show nazwa-pakietu', x: 'Informacje o pakiecie.' },
+      { c: 'apt-mark showmanual', x: 'Pakiety zainstalowane ręcznie.' },
+      { c: 'dpkg -S /ścieżka/do/pliku', x: 'Który pakiet jest właścicielem pliku.' },
+      { c: 'sudo apt clean', x: 'Czyści pobrane pliki .deb z pamięci podręcznej.' },
+    ],
+  },
+  {
+    id: 'mint-tools', d: 'mint', kind: 'cmds', t: 'Narzędzia Minta',
+    intro: 'Mint ma własne programy „mint-coś”. Większość ma wersję graficzną i terminalową.',
+    items: [
+      { c: 'mintupdate-cli list', x: 'Lista dostępnych aktualizacji według polityki Menedżera aktualizacji.' },
+      { c: 'mintupdate-cli upgrade', x: 'Instaluje te aktualizacje z terminala.' },
+      { c: 'sudo timeshift --create --comments "przed zmianami"', x: 'Ręczna migawka systemu, np. przed instalacją sterownika.' },
+      { c: 'sudo timeshift --list', x: 'Lista migawek.' },
+      { c: 'sudo timeshift --restore', x: 'Przywracanie migawki (interaktywnie). Działa też z pendrive’a live.' },
+      { c: 'sudo apt install mintupgrade && mintupgrade', x: 'Aktualizacja do nowego wydania głównego (np. 21 → 22). Uruchamiaj tylko, gdy Mint to ogłosi na blogu.', w: 'Przed tym zrób migawkę Timeshift.' },
+      { c: 'mintreport', x: 'Raporty systemu: wykryte problemy, brakujące pakiety językowe, informacje o sprzęcie.', g: 'Menu → Raporty systemu' },
+      { c: 'mintstick -m iso', x: 'Nagrywanie obrazu ISO na pendrive.', g: 'Menu → Kreator bootowalnego USB' },
+      { c: '', x: 'Kernele: Menedżer aktualizacji → Widok → Kernele Linuksa. Tam zainstalujesz lub usuniesz konkretną wersję.', g: 'Menedżer aktualizacji' },
+    ],
+  },
+  {
+    id: 'mint-cinnamon', d: 'mint', kind: 'cmds', t: 'Cinnamon: pulpit',
+    intro: 'Środowisko graficzne Minta. Wszystko ustawisz w Ustawieniach systemu, a kilka rzeczy przyda się z terminala.',
+    items: [
+      { c: '', x: 'Ctrl+Alt+Esc restartuje Cinnamon, gdy pulpit się zawiesi. Otwarte okna zostają.', g: 'Skrót klawiszowy' },
+      { c: '', x: 'Super otwiera menu, Super+D pokazuje pulpit, Super+strzałki przyciągają okna do krawędzi.', g: 'Skrót klawiszowy' },
+      { c: 'dconf dump /org/cinnamon/ > cinnamon-backup.conf', x: 'Kopia wszystkich ustawień pulpitu do pliku.' },
+      { c: 'dconf load /org/cinnamon/ < cinnamon-backup.conf', x: 'Przywrócenie ustawień z kopii (np. na nowym komputerze).' },
+      { c: 'cinnamon-settings applets', x: 'Aplety panelu. Podobnie działa: themes, keyboard, display, hotcorner.' },
+      { c: 'ls ~/.config/autostart', x: 'Programy uruchamiane przy logowaniu. Graficznie: Programy startowe.', g: 'Ustawienia → Programy startowe' },
+    ],
+  },
+  {
+    id: 'mint-fix', d: 'mint', kind: 'cmds', t: 'Konserwacja i naprawy',
+    intro: 'Najczęstsze problemy na Mincie i Ubuntu.',
+    items: [
+      { c: 'sudo dpkg --configure -a', x: 'Dokańcza instalację przerwaną w połowie (np. po zamknięciu terminala).' },
+      { c: 'sudo apt --fix-broken install', x: 'Naprawia niespełnione zależności.' },
+      { c: 'sudo lsof /var/lib/dpkg/lock-frontend', x: 'Błąd „Could not get lock”: pokazuje, który proces trzyma blokadę. Zwykle wystarczy poczekać na Menedżera aktualizacji.' },
+      { c: 'sudo add-apt-repository ppa:autor/nazwa', x: 'Dodanie PPA, czyli zewnętrznego repozytorium.', w: 'PPA to częsta przyczyna problemów przy aktualizacji wydania. Usuwaj je, gdy przestaniesz potrzebować.' },
+      { c: 'sudo add-apt-repository --remove ppa:autor/nazwa', x: 'Usunięcie PPA.' },
+      { c: 'apt-mark showhold', x: 'Pakiety zablokowane przed aktualizacją.' },
+      { c: 'journalctl -b -p 3', x: 'Błędy z bieżącego uruchomienia systemu.' },
+      { c: '', x: 'System nie wstaje? Uruchom Minta z pendrive’a, otwórz Timeshift i przywróć ostatnią dobrą migawkę.', g: 'Ratunek' },
+    ],
+  },
+
+  // ───────────── Oba systemy ─────────────
+  {
+    id: 'map', d: 'all', kind: 'table', t: 'Słownik pacman ↔ apt',
+    intro: 'Ta sama czynność w obu systemach. Przydatne, gdy przesiadasz się między nimi.',
+    head: ['Czynność', 'CachyOS (pacman)', 'Mint (apt)'],
+    rows: [
+      ['Aktualizacja systemu', 'sudo pacman -Syu', 'sudo apt update && sudo apt upgrade'],
+      ['Instalacja', 'sudo pacman -S pakiet', 'sudo apt install pakiet'],
+      ['Usunięcie', 'sudo pacman -R pakiet', 'sudo apt remove pakiet'],
+      ['Usunięcie z konfiguracją', 'sudo pacman -Rns pakiet', 'sudo apt purge pakiet'],
+      ['Szukanie', 'pacman -Ss fraza', 'apt search fraza'],
+      ['Informacje', 'pacman -Si pakiet', 'apt show pakiet'],
+      ['Zainstalowane ręcznie', 'pacman -Qe', 'apt-mark showmanual'],
+      ['Zbędne zależności', 'sudo pacman -Rns $(pacman -Qdtq)', 'sudo apt autoremove'],
+      ['Czyszczenie cache', 'sudo paccache -rk2', 'sudo apt clean'],
+      ['Właściciel pliku', 'pacman -Qo /plik', 'dpkg -S /plik'],
+      ['Pliki pakietu', 'pacman -Ql pakiet', 'dpkg -L pakiet'],
+      ['Instalacja z pliku', 'sudo pacman -U plik.pkg.tar.zst', 'sudo apt install ./plik.deb'],
+      ['Pakiety spoza repo', 'paru -S pakiet (AUR)', 'PPA, .deb, Flatpak'],
+    ],
+  },
+  {
+    id: 'settings', d: 'all', kind: 'table', t: 'Gdzie co ustawić',
+    intro: 'CachyOS zwykle działa na KDE Plasma, Mint na Cinnamon. Tu znajdziesz odpowiedniki.',
+    head: ['Co', 'CachyOS (KDE Plasma)', 'Mint (Cinnamon)'],
+    rows: [
+      ['Ustawienia systemu', 'systemsettings', 'cinnamon-settings'],
+      ['Sterowniki GPU', 'sudo chwd -a lub CachyOS Hello', 'Menedżer sterowników'],
+      ['Aktualizacje', 'pacman / paru / Octopi', 'Menedżer aktualizacji'],
+      ['Sklep z aplikacjami', 'CachyOS Hello → Aplikacje, Discover', 'Menedżer oprogramowania'],
+      ['Kopie systemu', 'Btrfs Assistant + Snapper', 'Timeshift'],
+      ['Firewall', 'ufw (sudo ufw status)', 'Konfiguracja zapory (gufw)'],
+      ['Monitor systemu', 'Monitor systemu (plasma-systemmonitor)', 'Monitor systemu (gnome-system-monitor)'],
+      ['Skróty klawiszowe', 'Ustawienia → Klawiatura → Skróty', 'Ustawienia → Klawiatura → Skróty'],
+      ['Autostart', 'Ustawienia → System → Autostart', 'Ustawienia → Programy startowe'],
+      ['Ekrany i skalowanie', 'Ustawienia → Ekrany', 'Ustawienia → Ekran'],
+      ['Menedżer partycji', 'KDE Partition Manager', 'GParted / Dyski'],
+      ['Kernel', 'CachyOS Kernel Manager', 'Menedżer aktualizacji → Widok → Kernele'],
+    ],
+  },
+  {
+    id: 'files', d: 'all', kind: 'cmds', t: 'Pliki i katalogi',
+    intro: '~ to Twój katalog domowy, . to bieżący katalog, .. to katalog wyżej. Tab dopełnia nazwy.',
+    items: [
+      { c: 'pwd', x: 'W jakim katalogu jestem.' },
+      { c: 'ls -lah', x: 'Lista plików ze szczegółami, ukrytymi plikami i czytelnymi rozmiarami.' },
+      { c: 'cd -', x: 'Powrót do poprzedniego katalogu.' },
+      { c: 'mkdir -p projekty/nowy/src', x: 'Tworzy katalog razem z brakującymi katalogami nadrzędnymi.' },
+      { c: 'cp -r źródło cel', x: 'Kopiowanie (-r dla katalogów).' },
+      { c: 'mv stara-nazwa nowa-nazwa', x: 'Przeniesienie lub zmiana nazwy.' },
+      { c: 'rm -r katalog', x: 'Usunięcie katalogu z zawartością.', w: 'Bez kosza, bez cofania. Uważaj szczególnie z sudo i gwiazdką.' },
+      { c: 'ln -s /cel/oryginał skrót', x: 'Dowiązanie symboliczne (skrót).' },
+      { c: 'less plik.log', x: 'Przeglądanie długiego pliku. q wychodzi, / szuka.' },
+      { c: 'nano plik.txt', x: 'Prosty edytor w terminalu. Ctrl+O zapisuje, Ctrl+X wychodzi.' },
+      { c: 'xdg-open .', x: 'Otwiera bieżący katalog w menedżerze plików (albo plik w domyślnym programie).' },
+    ],
+  },
+  {
+    id: 'search', d: 'all', kind: 'cmds', t: 'Szukanie',
+    intro: 'Szukanie plików, tekstu w plikach i programów.',
+    items: [
+      { c: 'find ~ -iname "*faktura*"', x: 'Pliki po nazwie w katalogu domowym (bez rozróżniania wielkości liter).' },
+      { c: 'find . -type f -size +500M', x: 'Pliki większe niż 500 MB w bieżącym katalogu.' },
+      { c: 'grep -rn "szukany tekst" .', x: 'Tekst we wszystkich plikach, z numerami linii.' },
+      { c: 'grep -i error plik.log', x: 'Linie zawierające „error”, bez względu na wielkość liter.' },
+      { c: 'which firefox', x: 'Gdzie leży program.' },
+      { c: 'history | grep ssh', x: 'Szukanie we wcześniejszych komendach. Szybciej: Ctrl+R.' },
+    ],
+  },
+  {
+    id: 'perms', d: 'all', kind: 'cmds', t: 'Uprawnienia i użytkownicy',
+    intro: 'Każdy plik ma właściciela, grupę i prawa: r (odczyt), w (zapis), x (uruchamianie).',
+    items: [
+      { c: 'chmod +x skrypt.sh', x: 'Pozwala uruchomić plik (potem: ./skrypt.sh).' },
+      { c: 'chmod 644 plik', x: 'Właściciel czyta i zapisuje, reszta tylko czyta. 755 to typowe prawa dla katalogów.' },
+      { c: 'sudo chown -R $USER:$USER katalog', x: 'Przejmuje własność katalogu, np. gdy przez sudo stworzyłeś coś w swoim domu.' },
+      { c: 'groups', x: 'W jakich grupach jesteś.' },
+      { c: 'sudo usermod -aG nazwa-grupy $USER', x: 'Dodaje Cię do grupy (np. docker). Działa po ponownym zalogowaniu.' },
+      { c: 'passwd', x: 'Zmiana własnego hasła.' },
+      { c: 'sudo -i', x: 'Powłoka roota. Wyjście: exit.', w: 'Używaj tylko na chwilę.' },
+    ],
+  },
+  {
+    id: 'procs', d: 'all', kind: 'cmds', t: 'Procesy i wydajność',
+    intro: 'Co działa, co zjada procesor i jak to zatrzymać.',
+    items: [
+      { c: 'btop', x: 'Kolorowy monitor procesora, pamięci, dysków i sieci. Alternatywa: htop.' },
+      { c: 'ps aux | grep firefox', x: 'Szukanie procesu i jego numeru PID.' },
+      { c: 'pkill firefox', x: 'Zamyka procesy po nazwie.' },
+      { c: 'kill -9 1234', x: 'Wymusza zakończenie procesu o danym PID.' },
+      { c: 'free -h', x: 'Zużycie pamięci RAM i swapu.' },
+      { c: 'systemd-analyze blame', x: 'Co najdłużej spowalnia start systemu.' },
+      { c: 'uptime', x: 'Jak długo działa system i jakie jest obciążenie.' },
+    ],
+  },
+  {
+    id: 'disks', d: 'all', kind: 'cmds', t: 'Dyski',
+    intro: 'Miejsce na dysku, partycje i ich stan.',
+    items: [
+      { c: 'df -h', x: 'Wolne miejsce na partycjach.' },
+      { c: 'du -sh * | sort -h', x: 'Rozmiary katalogów w bieżącym katalogu, od najmniejszego.' },
+      { c: 'ncdu ~', x: 'Interaktywna przeglądarka zajętego miejsca (trzeba doinstalować pakiet ncdu).' },
+      { c: 'lsblk -f', x: 'Dyski, partycje, systemy plików i punkty montowania.' },
+      { c: 'sudo fstrim -av', x: 'Ręczny TRIM dla dysków SSD. Oba systemy robią to też automatycznie co tydzień.' },
+      { c: 'sudo smartctl -a /dev/nvme0', x: 'Stan zdrowia dysku (pakiet smartmontools).' },
+    ],
+  },
+  {
+    id: 'net', d: 'all', kind: 'cmds', t: 'Sieć',
+    intro: 'Oba systemy używają NetworkManagera, więc nmcli działa tak samo.',
+    items: [
+      { c: 'ip a', x: 'Interfejsy sieciowe i adresy IP.' },
+      { c: 'ping -c 4 1.1.1.1', x: 'Czy jest połączenie z internetem. Potem sprawdź DNS: ping -c 4 google.com.' },
+      { c: 'nmcli dev wifi list', x: 'Widoczne sieci Wi-Fi.' },
+      { c: 'nmcli dev wifi connect "NazwaSieci" --ask', x: 'Łączenie z Wi-Fi (pyta o hasło).' },
+      { c: 'ss -tulpn', x: 'Otwarte porty i programy, które na nich słuchają.' },
+      { c: 'sudo systemctl restart NetworkManager', x: 'Restart sieci, gdy coś się zawiesi.' },
+    ],
+  },
+  {
+    id: 'systemd', d: 'all', kind: 'cmds', t: 'Usługi i logi (systemd)',
+    intro: 'systemd uruchamia usługi w obu systemach. journalctl czyta ich logi.',
+    items: [
+      { c: 'systemctl status nazwa', x: 'Stan usługi, np. bluetooth lub cups.' },
+      { c: 'sudo systemctl enable --now nazwa', x: 'Włącza usługę teraz i przy każdym starcie.' },
+      { c: 'sudo systemctl disable --now nazwa', x: 'Wyłącza usługę teraz i na stałe.' },
+      { c: 'sudo systemctl restart nazwa', x: 'Restart usługi.' },
+      { c: 'journalctl -u nazwa -f', x: 'Logi usługi na żywo. Ctrl+C kończy.' },
+      { c: 'journalctl -b -1 -p 3', x: 'Błędy z poprzedniego uruchomienia (np. po zawieszeniu).' },
+      { c: 'sudo journalctl --vacuum-time=2weeks', x: 'Usuwa logi starsze niż 2 tygodnie.' },
+    ],
+  },
+  {
+    id: 'hw', d: 'all', kind: 'cmds', t: 'Sprzęt',
+    intro: 'Informacje przydatne przy szukaniu pomocy na forum.',
+    items: [
+      { c: 'inxi -Fxz', x: 'Pełny opis sprzętu i systemu, bez danych osobistych. Wklejaj to na forach. Na CachyOS: sudo pacman -S inxi.' },
+      { c: 'lspci -k | grep -A3 -E "VGA|3D"', x: 'Karta graficzna i sterownik, który ją obsługuje.' },
+      { c: 'nvidia-smi', x: 'Stan karty NVIDIA (tylko z własnościowym sterownikiem).' },
+      { c: 'lsusb', x: 'Podłączone urządzenia USB.' },
+      { c: 'sensors', x: 'Temperatury (pakiet lm_sensors na CachyOS, lm-sensors na Mincie).' },
+      { c: 'echo $XDG_SESSION_TYPE', x: 'Czy sesja działa na Wayland czy X11.' },
+    ],
+  },
+  {
+    id: 'archives', d: 'all', kind: 'cmds', t: 'Archiwa',
+    intro: 'Pakowanie i rozpakowywanie.',
+    items: [
+      { c: 'tar -xvf archiwum.tar.gz', x: 'Rozpakowanie .tar.gz, .tar.xz, .tar.zst (format wykrywany sam).' },
+      { c: 'tar -czvf kopia.tar.gz katalog/', x: 'Spakowanie katalogu do .tar.gz.' },
+      { c: 'unzip plik.zip -d cel/', x: 'Rozpakowanie ZIP do wskazanego katalogu.' },
+      { c: 'zip -r archiwum.zip katalog/', x: 'Spakowanie do ZIP.' },
+    ],
+  },
+  {
+    id: 'ssh', d: 'all', kind: 'cmds', t: 'SSH i zdalny dostęp',
+    intro: 'Łączenie z innymi komputerami i przesyłanie plików.',
+    items: [
+      { c: 'ssh-keygen -t ed25519', x: 'Tworzy parę kluczy SSH (raz na komputer).' },
+      { c: 'ssh-copy-id user@192.168.1.10', x: 'Kopiuje klucz na serwer. Potem logujesz się bez hasła.' },
+      { c: 'ssh user@192.168.1.10', x: 'Połączenie z innym komputerem.' },
+      { c: 'scp plik.txt user@192.168.1.10:~/', x: 'Kopiowanie pliku na inny komputer.' },
+      { c: 'rsync -avh --progress źródło/ user@host:cel/', x: 'Synchronizacja katalogów. Przerwaną kopię wznawia od miejsca przerwania.' },
+    ],
+  },
+  {
+    id: 'flatpak', d: 'all', kind: 'cmds', t: 'Flatpak',
+    intro: 'Aplikacje w kontenerach z Flathub. Na Mincie działają od razu, na CachyOS doinstaluj: sudo pacman -S flatpak.',
+    items: [
+      { c: 'flatpak install flathub org.telegram.desktop', x: 'Instalacja aplikacji po identyfikatorze z flathub.org.' },
+      { c: 'flatpak update', x: 'Aktualizacja wszystkich aplikacji Flatpak.' },
+      { c: 'flatpak list --app', x: 'Zainstalowane aplikacje.' },
+      { c: 'flatpak uninstall --unused', x: 'Usuwa nieużywane środowiska uruchomieniowe.' },
+      { c: 'flatpak run org.telegram.desktop', x: 'Uruchomienie z terminala (przydatne do podejrzenia błędów).' },
+    ],
+  },
+  {
+    id: 'keys', d: 'all', kind: 'cmds', t: 'Skróty w terminalu',
+    intro: 'Te skróty oszczędzają najwięcej pisania.',
+    items: [
+      { c: '', x: 'Tab dopełnia nazwę komendy lub pliku. Dwa razy Tab pokazuje możliwości.', g: 'Tab' },
+      { c: '', x: 'Ctrl+R przeszukuje historię komend. Kolejne Ctrl+R pokazuje starsze wyniki.', g: 'Ctrl+R' },
+      { c: '', x: 'Ctrl+C przerywa działającą komendę.', g: 'Ctrl+C' },
+      { c: '', x: 'Ctrl+Shift+C i Ctrl+Shift+V kopiują i wklejają w terminalu. Samo Ctrl+C tu nie kopiuje.', g: 'Ctrl+Shift+V' },
+      { c: '', x: 'Ctrl+L czyści ekran, Ctrl+D zamyka terminal.', g: 'Ctrl+L' },
+      { c: '', x: 'Ctrl+A skacze na początek linii, Ctrl+E na koniec, Ctrl+U kasuje do początku.', g: 'Ctrl+A / E' },
+      { c: 'sudo !!', x: 'W bashu (Mint) powtarza ostatnią komendę z sudo. W fish (CachyOS) użyj Alt+S.' },
+      { c: 'man ls', x: 'Instrukcja do komendy. Krótsza wersja: ls --help.' },
+    ],
+  },
+];
+
+(function () {
+  const LABEL = { cachy: 'CachyOS', mint: 'Linux Mint', all: 'Oba systemy' };
+  const $ = (s) => document.querySelector(s);
+
+  const store = {
+    get(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch (e) { return def; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  };
+
+  const state = {
+    d: store.get('sciaga.d', 'all'),
+    q: '',
+    favs: new Set(store.get('sciaga.favs', [])),
+    done: new Set(store.get('sciaga.done', [])),
+  };
+
+  function h(tag, attrs, ...kids) {
+    const el = document.createElement(tag);
+    for (const k in attrs || {}) {
+      if (k === 'class') el.className = attrs[k];
+      else if (k.startsWith('on')) el.addEventListener(k.slice(2), attrs[k]);
+      else el.setAttribute(k, attrs[k]);
+    }
+    for (const kid of kids) if (kid != null && kid !== false) el.append(kid);
+    return el;
+  }
+  function svg(path) {
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('width', '17'); s.setAttribute('height', '17'); s.setAttribute('viewBox', '0 0 24 24');
+    s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2');
+    s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round');
+    s.innerHTML = path;
+    return s;
+  }
+  const ICON_COPY = '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>';
+  const ICON_OK = '<path d="M5 12l5 5L20 7"/>';
+  const ICON_STAR = '<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/>';
+
+  let toastT;
+  function toast(msg) {
+    const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1400);
+  }
+
+  function copy(text, codeEl, btn) {
+    const ok = () => {
+      toast('Skopiowano');
+      if (btn) { btn.replaceChildren(svg(ICON_OK)); btn.classList.add('ok');
+        setTimeout(() => { btn.replaceChildren(svg(ICON_COPY)); btn.classList.remove('ok'); }, 1200); }
+    };
+    const fallback = () => {
+      const r = document.createRange(); r.selectNodeContents(codeEl);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      toast('Zaznaczono. Naciśnij Ctrl+C');
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fallback);
+      else fallback();
+    } catch (e) { fallback(); }
+  }
+
+  function norm(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l'); }
+  function matches(q, ...parts) { return !q || q.split(/\s+/).every((w) => norm(parts.join(' ')).includes(w)); }
+
+  function visibleSection(s) {
+    if (state.d === 'cachy' || state.d === 'mint') return s.d === state.d || s.d === 'all';
+    return true;
+  }
+
+  function renderItem(s, it, i) {
+    const key = s.id + '|' + i;
+    const children = [];
+    if (s.kind === 'steps') {
+      const isDone = state.done.has(key);
+      children.push(h('button', {
+        class: 'num', 'aria-pressed': String(isDone), title: isDone ? 'Oznacz jako niezrobione' : 'Oznacz jako zrobione',
+        onclick: () => { isDone ? state.done.delete(key) : state.done.add(key); store.set('sciaga.done', [...state.done]); render(); },
+      }, isDone ? '✓' : String(i + 1)));
+    }
+    let codeEl = null;
+    const cmd = h('div', { class: 'cmd' });
+    if (it.c) {
+      codeEl = h('code', { title: 'Kliknij, żeby skopiować' }, it.c);
+      cmd.append(codeEl);
+    }
+    if (it.g) cmd.append(h('div', { class: 'gui' + (it.c ? '' : ' solo') }, it.c ? 'GUI: ' : '', h('b', null, it.g)));
+    children.push(cmd);
+    children.push(h('div', { class: 'desc' }, h('p', null, it.x), it.w ? h('p', { class: 'warn' }, '⚠ ' + it.w) : null));
+
+    const acts = h('div', { class: 'acts' });
+    if (it.c) {
+      const b = h('button', { class: 'ic', title: 'Kopiuj', 'aria-label': 'Kopiuj komendę' }, svg(ICON_COPY));
+      b.addEventListener('click', () => copy(it.c, codeEl, b));
+      codeEl.addEventListener('click', () => copy(it.c, codeEl, b));
+      acts.append(b);
+    }
+    const fav = state.favs.has(key);
+    const star = h('button', {
+      class: 'ic' + (fav ? ' on' : ''), title: fav ? 'Usuń z ulubionych' : 'Dodaj do ulubionych', 'aria-pressed': String(fav),
+      onclick: () => { fav ? state.favs.delete(key) : state.favs.add(key); store.set('sciaga.favs', [...state.favs]); render(); toast(fav ? 'Usunięto z ulubionych' : 'Dodano do ulubionych'); },
+    }, svg(ICON_STAR));
+    if (fav) star.querySelector('svg').setAttribute('fill', 'currentColor');
+    acts.append(star);
+    children.push(acts);
+    return h('li', { class: 'item' + (s.kind === 'steps' && state.done.has(key) ? ' done' : '') }, ...children);
+  }
+
+  function render() {
+    const q = norm(state.q.trim());
+    const main = $('#main'); const chips = $('#chips');
+    main.replaceChildren(); chips.replaceChildren();
+    let shown = 0;
+
+    for (const s of SECTIONS) {
+      if (!visibleSection(s)) continue;
+      const titleHit = q && matches(q, s.t, LABEL[s.d]);
+      let body;
+      if (s.kind === 'table') {
+        if (state.d === 'fav') continue;
+        const rows = s.rows.filter((r) => titleHit || matches(q, ...r));
+        if (!rows.length) continue;
+        body = h('div', { class: 'tbl' }, h('table', null,
+          h('thead', null, h('tr', null, ...s.head.map((c) => h('th', null, c)))),
+          h('tbody', null, ...rows.map((r) => h('tr', null, h('td', null, r[0]), h('td', { class: 'mono' }, r[1]), h('td', { class: 'mono' }, r[2]))))));
+        shown += rows.length;
+      } else {
+        const items = s.items.map((it, i) => [it, i]).filter(([it, i]) =>
+          (state.d !== 'fav' || state.favs.has(s.id + '|' + i)) && (titleHit || matches(q, it.c, it.x, it.w, it.g)));
+        if (!items.length) continue;
+        body = h('ol', { class: 'list' + (s.kind === 'steps' ? ' steps' : '') }, ...items.map(([it, i]) => renderItem(s, it, i)));
+        shown += items.length;
+      }
+      let progress = null;
+      if (s.kind === 'steps') {
+        const n = s.items.filter((_, i) => state.done.has(s.id + '|' + i)).length;
+        progress = h('span', { class: 'tag' }, n + ' / ' + s.items.length + ' zrobione');
+      }
+      main.append(h('section', { id: s.id },
+        h('div', { class: 'sh' }, h('span', { class: 'tag ' + s.d }, LABEL[s.d]), h('h2', null, s.t), progress),
+        s.intro && !q && state.d !== 'fav' ? h('p', { class: 'intro' }, s.intro) : null,
+        body));
+      chips.append(h('a', { href: '#' + s.id }, h('span', { class: 'dot ' + s.d }), s.t));
+    }
+
+    if (!shown) {
+      main.append(h('div', { class: 'empty' },
+        state.d === 'fav' && !q
+          ? h('p', null, 'Nie masz jeszcze ulubionych. Kliknij ', h('b', null, '☆'), ' przy komendzie, żeby ją tu dodać.')
+          : h('p', null, 'Nic nie pasuje do „', h('b', null, state.q), '”. Spróbuj innego słowa albo przełącz na ', h('b', null, 'Wszystko'), '.')));
+    }
+    chips.hidden = !shown;
+    document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.d === state.d)));
+  }
+
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+    state.d = b.dataset.d; store.set('sciaga.d', state.d); render(); window.scrollTo({ top: 0 });
+  }));
+  $('#q').addEventListener('input', (e) => { state.q = e.target.value; render(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== $('#q')) { e.preventDefault(); $('#q').focus(); }
+    if (e.key === 'Escape' && document.activeElement === $('#q')) { $('#q').value = ''; state.q = ''; render(); }
+  });
+
+  // PWA: instalacja i praca offline (nie działa w podglądzie Artifact, tam po cichu pomijamy)
+  let deferred = null;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; $('#installBtn').hidden = false; });
+  $('#installBtn').addEventListener('click', async () => {
+    if (!deferred) return; deferred.prompt(); await deferred.userChoice.catch(() => {}); deferred = null; $('#installBtn').hidden = true;
+  });
+  if (!window.__ARTIFACT && 'serviceWorker' in navigator && location.protocol !== 'file:') {
+    try { navigator.serviceWorker.register('./sw.js').catch(() => {}); } catch (e) {}
+  }
+
+  render();
+})();
+
+</script>
